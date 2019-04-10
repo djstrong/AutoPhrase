@@ -9,6 +9,9 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
+import java.io.DataOutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -58,6 +61,70 @@ class SpecialTagger {
 		String[] ret = new String[1];
 		ret[0] = text;
 		return ret;
+	}
+}
+
+class KRNNTagger extends SpecialTagger {
+  public String executePost(String targetURL, String urlParameters) {
+  HttpURLConnection connection = null;
+
+  try {
+    URL url = new URL(targetURL);
+    connection = (HttpURLConnection) url.openConnection();
+    connection.setRequestMethod("POST");
+    connection.setRequestProperty("Content-Type", "text/plain");
+    connection.setRequestProperty("Content-Length", Integer.toString(urlParameters.getBytes().length));
+
+    connection.setDoOutput(true);
+
+    DataOutputStream wr = new DataOutputStream (connection.getOutputStream());
+    wr.write(urlParameters.getBytes("UTF-8"));
+    // wr.writeUTF(urlParameters);
+    wr.close();
+
+    //Get Response  
+    InputStream is = connection.getInputStream();
+    BufferedReader rd = new BufferedReader(new InputStreamReader(is));
+    StringBuilder response = new StringBuilder();
+    String line;
+    while ((line = rd.readLine()) != null) {
+      response.append(line);
+      response.append('\n');
+    }
+    rd.close();
+    return response.toString();
+  } catch (Exception e) {
+    e.printStackTrace();
+    return null;
+  } finally {
+    if (connection != null) {
+      connection.disconnect();
+    }
+  }
+}
+
+	@Override
+	public String[] tag(String text) {
+		String response=executePost("http://localhost:9200", text);
+		ArrayList<String> result = new ArrayList<String>();
+		for (String line: response.split("\n")) {
+        String[] fields = line.split("\t");
+        if (fields.length>2) {
+            String lemma=fields[1];
+            String tag=fields[3];
+            String pos=fields[3].split(":")[0];
+            result.add(lemma + "/"+pos);
+        }
+		}
+		return result.toArray(new String[result.size()]);
+	}
+}
+
+class SpaceTagger extends SpecialTagger {
+	@Override
+	public String[] tag(String text) {
+    String[] splited = text.split(" ");
+    return splited;
 	}
 }
 
@@ -168,7 +235,7 @@ public class Tokenizer {
     private static void loadPunctuationMapping(String language) {
         String punctuationMappingFileName = null;
         switch (language) {
-            case "EN": case "FR": case "DE": case "ES": case "IT": case "PT": case "RU": case "AR":
+            case "EN": case "FR": case "DE": case "ES": case "IT": case "PT": case "RU": case "AR": case "PL": case "PL2":
                 {punctuationMappingFileName = "/indo_european_punctuation_mapping.txt"; break;}
             case "CN": case "JA":
                 {punctuationMappingFileName = "/cjk_punctuation_mapping.txt"; break;}
@@ -247,6 +314,8 @@ public class Tokenizer {
     private static SpecialTagger getSuitableTagger(String language, String mode) throws IOException {
         switch (language) {
             case "CN": {return new ChineseTagger();}
+            case "PL": {return new SpaceTagger();}
+            case "PL2": {return new KRNNTagger();}
         }
         System.err.println("Using default setting for unknown languages...");
         return new StandardTagger();
