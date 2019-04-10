@@ -39,11 +39,11 @@ def Load(filename, stopwords, output_filename):
             continue
         tokens = line.strip().split('\t')
         valid = False
-        for token in tokens[2:]:
+        for token in tokens[3:]:
             support = int(token.split(':')[-2])
             percentage = float(token.split(':')[-1][:-1])
             if (percentage >= MIN_PERCENT) or (support >= MIN_SUP):
-                name = ':'.join(token.split(':')[:-2])
+                name = ':'.join(token.split(':')[1:-3])
                 valid = True
                 if NoSeparator(name) and StopWordChecking(name, stopwords):
                     candidate.add(name.lower())
