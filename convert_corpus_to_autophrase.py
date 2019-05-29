@@ -6,10 +6,10 @@ stats=collections.defaultdict(lambda: collections.defaultdict(int))
 def increment(buffer):
     form=' '.join([x[1] for x in buffer])
     base=' '.join([x[2] for x in buffer])
-    stats[form][base]+=1
+    stats[form.lower()][base.lower()]+=1
 
 path='tokens-with-entities-and-tags.tsv.bz2'
-# path='/net/scratch/people/plgapohl/wiki/pl/2019/tokens-with-entities-and-tags.tsv.bz2'
+path='/net/scratch/people/plgapohl/wiki/pl/2019/tokens-with-entities-and-tags.tsv.bz2'
 with open('autophrase_train.txt','wt') as f:
     buffer=[]
     # for line in open(path):
@@ -21,7 +21,7 @@ with open('autophrase_train.txt','wt') as f:
             continue
 
         if '/' not in fields[2]:
-            f.write(fields[2]+'/'+fields[4].split(':')[0]+' ')
+            f.write(fields[2].lower()+'/'+fields[4].split(':')[0]+' ')
 
         if fields[5]=='_':
             if buffer:
